@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Airflow — Interview & Explainability Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1C2E;
+    --bg-deep:#0A1520;
+    --panel:#16283F;
+    --panel-2:#1C3350;
+    --grid:rgba(255,255,255,0.055);
+    --ink:#E8EEF5;
+    --ink-muted:#8FA6BD;
+    --cyan:#7FD8E8;
+    --cyan-dim:#3E7A8A;
+    --amber:#F4A340;
+    --amber-dim:#8A6229;
+    --line:rgba(127,216,232,0.22);
+    --red:#E8747A;
+    --green:#7FD9A6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px) 0 0/40px 40px,
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/40px 40px,
+      var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:16px;
+    line-height:1.6;
+    min-height:100vh;
+  }
+  h1,h2,h3,h4{font-family:'Space Grotesk', sans-serif; font-weight:600; letter-spacing:0.2px; margin:0 0 0.4em;}
+  code, pre, .mono{font-family:'IBM Plex Mono', monospace;}
+  a{color:var(--cyan);}
+
+  /* ---------- Top header ---------- */
+  header.top{
+    border-bottom:1px solid var(--line);
+    padding:28px 32px 22px;
+    background:linear-gradient(180deg, rgba(22,40,63,0.9), rgba(22,40,63,0.4));
+    position:relative;
+  }
+  header.top::before{
+    content:"";
+    position:absolute; left:0; top:0; bottom:0; width:6px;
+    background:repeating-linear-gradient(180deg, var(--amber) 0 10px, transparent 10px 20px);
+  }
+  .kicker{color:var(--amber); font-family:'IBM Plex Mono',monospace; font-size:12.5px; letter-spacing:0.5px; margin-bottom:6px;}
+  header.top h1{font-size:clamp(26px,3.4vw,38px); max-width:820px;}
+  header.top p.sub{color:var(--ink-muted); max-width:680px; font-size:15px; margin-top:8px;}
+  .howto{
+    margin-top:16px; padding:14px 16px; border:1px dashed var(--line); border-radius:2px;
+    background:rgba(127,216,232,0.04); font-size:14px; color:var(--ink-muted); max-width:820px;
+  }
+  .howto b{color:var(--cyan); font-family:'Space Grotesk',sans-serif; font-weight:600;}
+
+  /* ---------- Nav ---------- */
+  nav.tabs{
+    display:flex; flex-wrap:wrap; gap:6px; padding:14px 32px; position:sticky; top:0; z-index:50;
+    background:rgba(10,21,32,0.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--line);
+  }
+  nav.tabs button{
+    font-family:'IBM Plex Mono',monospace; font-size:12.5px; letter-spacing:0.3px;
+    background:transparent; color:var(--ink-muted); border:1px solid var(--line);
+    padding:8px 12px; border-radius:2px; cursor:pointer; transition:all .15s ease; white-space:nowrap;
+  }
+  nav.tabs button:hover{color:var(--ink); border-color:var(--cyan-dim);}
+  nav.tabs button.active{color:var(--bg-deep); background:var(--cyan); border-color:var(--cyan); font-weight:600;}
+
+  main{padding:32px; max-width:980px; margin:0 auto;}
+  section.module{display:none;}
+  section.module.active{display:block; animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+  .mod-head{display:flex; align-items:baseline; gap:14px; margin-bottom:6px; flex-wrap:wrap;}
+  .mod-num{font-family:'IBM Plex Mono',monospace; color:var(--amber); font-size:14px;}
+  .mod-head h2{font-size:26px;}
+
+  .tldr{
+    border:1px solid var(--line); border-left:3px solid var(--cyan); background:var(--panel);
+    padding:16px 18px; border-radius:2px; margin:18px 0 26px; font-size:14.5px;
+  }
+  .tldr .lbl{font-family:'IBM Plex Mono',monospace; color:var(--cyan); font-size:11.5px; letter-spacing:1px; margin-bottom:8px;}
+
+  h3.block-title{
+    font-size:13px; text-transform:none; color:var(--amber); font-family:'IBM Plex Mono',monospace;
+    letter-spacing:0.5px; margin:34px 0 12px; display:flex; align-items:center; gap:10px;
+  }
+  h3.block-title::after{content:""; flex:1; height:1px; background:var(--line);}
+
+  /* diagrams */
+  .diagram-wrap{
+    border:1px solid var(--line); background:var(--bg-deep); border-radius:2px; padding:14px;
+    overflow-x:auto; margin-bottom:6px;
+  }
+  .diagram-cap{font-size:12.5px; color:var(--ink-muted); font-family:'IBM Plex Mono',monospace; margin:8px 2px 0;}
+
+  /* code */
+  pre{
+    background:var(--bg-deep); border:1px solid var(--line); border-radius:2px; padding:16px 18px;
+    overflow-x:auto; font-size:13.2px; line-height:1.55; color:#CFEFF6;
+  }
+  pre .c{color:#5D7A8C;} /* comments */
+  pre .k{color:var(--amber);} /* keywords */
+  pre .s{color:var(--green);} /* strings */
+
+  /* qa accordion */
+  details.qa{
+    border:1px solid var(--line); border-radius:2px; margin-bottom:8px; background:var(--panel);
+  }
+  details.qa[open]{border-color:var(--cyan-dim);}
+  details.qa summary{
+    cursor:pointer; padding:12px 16px; list-style:none; display:flex; gap:10px; align-items:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:14.5px;
+  }
+  details.qa summary::-webkit-details-marker{display:none;}
+  details.qa summary::before{content:"+"; color:var(--cyan); font-family:'IBM Plex Mono',monospace; width:16px; flex-shrink:0;}
+  details.qa[open] summary::before{content:"–";}
+  details.qa .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; padding:2px 7px; border-radius:2px; flex-shrink:0;
+  }
+  .tag.short{background:rgba(127,216,232,0.12); color:var(--cyan);}
+  .tag.long{background:rgba(244,163,64,0.14); color:var(--amber);}
+  details.qa .ans{padding:0 16px 16px 42px; font-size:14.5px; color:var(--ink); border-top:1px solid var(--line); margin-top:2px; padding-top:12px;}
+  details.qa .ans p{margin:0 0 10px;}
+  details.qa .ans p:last-child{margin-bottom:0;}
+  details.qa .ans .say{color:var(--ink-muted); font-style:italic; font-size:13.5px; border-left:2px solid var(--cyan-dim); padding-left:10px; margin-top:10px;}
+
+  .case{
+    border:1px solid var(--line); border-left:3px solid var(--amber); background:var(--panel-2);
+    padding:16px 18px; border-radius:2px; font-size:14.5px; margin-bottom:14px;
+  }
+  .case .lbl{font-family:'IBM Plex Mono',monospace; color:var(--amber); font-size:11.5px; letter-spacing:1px; margin-bottom:8px;}
+  .case p{margin:0 0 10px;}
+  .case p:last-child{margin-bottom:0;}
+
+  table{width:100%; border-collapse:collapse; font-size:14px; margin:8px 0 20px;}
+  th,td{border:1px solid var(--line); padding:9px 12px; text-align:left; vertical-align:top;}
+  th{background:var(--panel); font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--amber); font-weight:500;}
+  td{background:rgba(255,255,255,0.015);}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:760px){.grid2{grid-template-columns:1fr;} main{padding:20px;} header.top{padding:22px 20px;} nav.tabs{padding:12px 16px;}}
+
+  .glossary dt{font-family:'IBM Plex Mono',monospace; color:var(--cyan); margin-top:12px;}
+  .glossary dd{margin:2px 0 0; color:var(--ink-muted);}
+
+  footer{padding:30px 32px 60px; text-align:center; color:var(--ink-muted); font-size:12.5px; font-family:'IBM Plex Mono',monospace;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="kicker">INTELLIBI // DATA ENGINEERING TRACK // 2026</div>
+  <h1>Apache Airflow — Interview & Explainability Reference</h1>
+  <p class="sub">Every module you've been taught, turned into: what to say when asked, how to build it, and why it matters to a client. Built to be understood, not memorised — open it cold in three months and it should still make sense.</p>
+  <div class="howto">
+    <b>How to use this file —</b> Each module has a 60-second summary (TL;DR), an architecture diagram, working code, interview Q&A (short-answer and long-form "explain it out loud" versions), a project scenario, and a business case. Read the TL;DR and diagram first — if you can redraw the diagram from memory, you understand the module. The Q&A is there to check that understanding, not to be memorised word-for-word. Jump to <b>Cheat Sheet</b> for the compressed version the night before an interview.
+  </div>
+</header>
+
+<nav class="tabs" id="tabNav">
+  <button data-target="m1" class="active">1 · Architecture</button>
+  <button data-target="m2">2 · DAGs & Operators</button>
+  <button data-target="m3">3 · Scheduling</button>
+  <button data-target="m4">4 · UI, CLI & Monitoring</button>
+  <button data-target="m5">5 · XCom, Vars & Templating</button>
+  <button data-target="m6">6 · CI/CD & Dagster</button>
+  <button data-target="cheat">Cheat Sheet</button>
+</nav>
+
+<main>
+
+<!-- ================= MODULE 1 ================= -->
+<section class="module active" id="m1">
+  <div class="mod-head"><span class="mod-num">MODULE 01</span><h2>Introduction to Airflow & Architecture</h2></div>
+
+  <div class="tldr">
+    <div class="lbl">TL;DR</div>
+    Airflow is <b>workflow orchestration as Python code</b> — it decides when tasks run and in what order, but it doesn't process data itself (Spark, dbt, or your Python script does the actual work). Five moving parts: the <b>Scheduler</b> (decides what runs next), the <b>Webserver</b> (UI), the <b>Executor</b> (decides where/how a task runs — locally, via Celery workers, via Kubernetes pods), the <b>Metadata DB</b> (single source of truth for every DAG's state), and the <b>Triggerer</b> (runs async/deferred sensors without blocking a worker slot). Everything reads and writes through the metadata DB — that's why the UI is never the source of truth, it's just a window into it.
+  </div>
+
+  <h3 class="block-title">ARCHITECTURE DIAGRAM</h3>
+  <div class="diagram-wrap">
+<svg viewBox="0 0 900 380" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+  <defs>
+    <marker id="arrow1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7FD8E8"/></marker>
+  </defs>
+  <!-- DAG folder -->
+  <rect x="30" y="150" width="130" height="70" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+  <text x="95" y="180" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">DAG files</text>
+  <text x="95" y="196" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">(python, on disk/git)</text>
+
+  <!-- Scheduler -->
+  <rect x="220" y="60" width="150" height="70" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+  <text x="295" y="90" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">Scheduler</text>
+  <text x="295" y="106" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">parses DAGs,</text>
+  <text x="295" y="119" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">creates DagRuns</text>
+
+  <!-- Triggerer -->
+  <rect x="220" y="240" width="150" height="70" rx="2" fill="none" stroke="#F4A340" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="295" y="270" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">Triggerer</text>
+  <text x="295" y="286" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">async deferred</text>
+  <text x="295" y="299" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">sensors</text>
+
+  <!-- Metadata DB -->
+  <rect x="430" y="150" width="150" height="80" rx="2" fill="rgba(127,216,232,0.06)" stroke="#7FD8E8" stroke-width="1.6"/>
+  <text x="505" y="182" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">Metadata DB</text>
+  <text x="505" y="198" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">source of truth</text>
+  <text x="505" y="211" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">for all state</text>
+
+  <!-- Executor -->
+  <rect x="640" y="60" width="150" height="70" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+  <text x="715" y="90" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">Executor</text>
+  <text x="715" y="106" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">Local / Celery /</text>
+  <text x="715" y="119" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">Kubernetes</text>
+
+  <!-- Workers -->
+  <rect x="640" y="150" width="150" height="80" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+  <text x="715" y="182" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">Worker(s)</text>
+  <text x="715" y="198" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">actually runs the</text>
+  <text x="715" y="211" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">task_id's code</text>
+
+  <!-- Webserver -->
+  <rect x="640" y="240" width="150" height="70" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+  <text x="715" y="270" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">Webserver</text>
+  <text x="715" y="286" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">reads DB,</text>
+  <text x="715" y="299" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">renders the UI</text>
+
+  <!-- arrows -->
+  <path d="M160,185 L220,120" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow1)"/>
+  <path d="M295,130 L295,150" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow1)" transform="translate(0,-15) rotate(0)"/>
+  <path d="M370,95 L430,165" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow1)"/>
+  <path d="M370,275 L430,205" stroke="#F4A340" stroke-width="1.2" fill="none" marker-end="url(#arrow1)"/>
+  <path d="M580,180 L640,95" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow1)"/>
+  <path d="M580,195 L640,195" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow1)"/>
+  <path d="M715,130 L715,150" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow1)"/>
+  <path d="M715,230 L715,240" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow1)"/>
+  <path d="M640,275 L580,210" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow1)"/>
+</svg>
+  </div>
+  <div class="diagram-cap">Scheduler parses DAG files and writes DagRuns/TaskInstances to the metadata DB → Executor asks the DB what's ready and hands it to a Worker → Worker writes results back to the DB → Webserver only ever reads the DB. Deferred sensors hand off to the Triggerer so they don't tie up a worker slot while waiting.</div>
+
+  <h3 class="block-title">CODE — MINIMAL DAG SKELETON</h3>
+  <pre><span class="c"># every DAG file needs these three things: an import, a DAG object, and at least one task</span>
+<span class="k">from</span> airflow <span class="k">import</span> DAG
+<span class="k">from</span> airflow.operators.python <span class="k">import</span> PythonOperator
+<span class="k">from</span> datetime <span class="k">import</span> datetime
+
+<span class="k">def</span> hello():
+    print(<span class="s">"Airflow only decides WHEN this runs, not HOW it runs internally"</span>)
+
+<span class="k">with</span> DAG(
+    dag_id=<span class="s">"architecture_demo"</span>,
+    start_date=datetime(2026, 1, 1),
+    schedule=<span class="s">"@daily"</span>,
+    catchup=<span class="k">False</span>,
+) <span class="k">as</span> dag:
+    PythonOperator(task_id=<span class="s">"hello"</span>, python_callable=hello)</pre>
+
+  <h3 class="block-title">INTERVIEW Q&A</h3>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>What is Apache Airflow, in one sentence?</summary>
+    <div class="ans"><p>A platform to author, schedule, and monitor workflows defined as Python code, where each workflow is a DAG (directed acyclic graph) of tasks.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>Airflow vs a cron job — why does the difference matter?</summary>
+    <div class="ans"><p>Cron only knows "run this at this time." It has no idea if the previous run failed, no dependency graph between scripts, no retry logic, no UI, and no shared state between steps. Airflow adds all of that: dependency-aware scheduling, retries, alerting, a UI to see history, and a way to pass small values between tasks (XCom).</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>Name the Airflow executors and one line on each.</summary>
+    <div class="ans"><p><b>LocalExecutor</b> — runs tasks as parallel processes on the same machine as the scheduler; fine for small setups. <b>CeleryExecutor</b> — distributes tasks to a pool of pre-running worker machines via a message queue (Redis/RabbitMQ); scales horizontally, workers are always on. <b>KubernetesExecutor</b> — spins up a fresh pod per task and tears it down after; scales to zero, better isolation, slightly higher per-task startup latency.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag long">LONG</span>Walk me through exactly what happens between a DAG being scheduled and a task instance turning green in the UI.</summary>
+    <div class="ans">
+      <p>Break it into four hops, because that's how interviewers actually check you understand the architecture instead of having memorised a diagram:</p>
+      <p><b>1. Parse:</b> the Scheduler continuously scans the DAGs folder, re-parses each Python file, and builds an in-memory DAG object.</p>
+      <p><b>2. Schedule:</b> once a DAG's schedule condition is met, the Scheduler creates a DagRun and one TaskInstance per task, writing them to the Metadata DB in a "scheduled" or "queued" state.</p>
+      <p><b>3. Execute:</b> the Executor picks up queued TaskInstances and hands them to a Worker (a process, a Celery worker, or a new K8s pod depending on which executor is configured). The worker runs the actual `python_callable` or operator logic and streams logs.</p>
+      <p><b>4. Report:</b> when the task finishes, the worker writes the final state (success/failed) back to the Metadata DB. The Webserver is just reading that same DB on a refresh — it never talks to the worker directly.</p>
+      <p class="say">Say it like: "Scheduler decides what should run and writes it to the DB, the executor decides where it runs and hands it to a worker, the worker does the actual work and writes the result back, and the UI is just a live read of that same database."</p>
+    </div>
+  </details>
+
+  <details class="qa"><summary><span class="tag long">LONG</span>Why is the Metadata DB described as the "single source of truth," and what breaks if it goes down?</summary>
+    <div class="ans">
+      <p>Every component — Scheduler, Executor, Workers, Webserver — reads and writes state through that one database instead of talking to each other directly. That's a deliberate design choice: it decouples the components so any of them can restart or scale independently without losing state, because nothing is held in memory that isn't also persisted.</p>
+      <p>If it goes down: the Scheduler can't create new DagRuns or mark tasks as queued, the Webserver shows stale or no data, and in-flight tasks that are mid-execution may finish but be unable to report their final state back — so you'd see tasks stuck in "running" even after they've actually completed on the worker. This is also why Airflow's metadata DB is usually the first thing you'd put on a managed, highly-available database service in production rather than a single container.</p>
+    </div>
+  </details>
+
+  <h3 class="block-title">PROJECT-BASED SCENARIO</h3>
+  <div class="case">
+    <div class="lbl">SCENARIO</div>
+    <p>Your team currently runs 12 nightly ETL scripts via cron on a single EC2 box. One engineer is the only person who knows which script depends on which, and failures are only discovered when a downstream report is empty the next morning. You're asked to propose moving this to Airflow.</p>
+    <p><b>How to structure the answer:</b> Don't jump to code — walk the architecture first. (1) Model the 12 scripts as one or more DAGs with explicit `>>` dependencies, so the tribal knowledge becomes visible in a Graph view. (2) Pick an executor: LocalExecutor is enough for 12 sequential-ish jobs; only justify Celery/Kubernetes if you expect this to grow to dozens of concurrent DAGs. (3) Turn on retries and failure alerting (email/Slack) so failures surface in minutes, not the next morning. (4) Point out that the Metadata DB now gives you a queryable audit trail of every run — something cron never had.</p>
+  </div>
+
+  <h3 class="block-title">BUSINESS / CLIENT CASE</h3>
+  <div class="case">
+    <div class="lbl">CLIENT SAYS</div>
+    <p>"Our nightly finance reports fail silently a couple of times a month, and we only find out when someone in the business team complains that numbers look wrong. We don't even know how often this actually happens."</p>
+    <p><b>How you'd respond:</b> This is an observability and alerting problem, not a compute problem — and it's exactly what Airflow's architecture is designed to fix. Every run is persisted in the Metadata DB, so you get an audit trail (how often does this actually fail, and where) instead of anecdotal complaints. Layer on `on_failure_callback` or a Slack/email alert so the team is notified within minutes, not weeks. Frame the value in business terms: this converts "silent, undetected data quality risk" into "detected within minutes, with a full history to diagnose root cause."</p>
+  </div>
+</section>
+
+<!-- ================= MODULE 2 ================= -->
+<section class="module" id="m2">
+  <div class="mod-head"><span class="mod-num">MODULE 02</span><h2>DAGs, Operators & Task Dependencies</h2></div>
+
+  <div class="tldr">
+    <div class="lbl">TL;DR</div>
+    A <b>DAG</b> is the workflow definition; a <b>task</b> is one node in it, created by an <b>Operator</b> (Bash, Python, SQL, Spark...) which is a reusable template for "what kind of work." Dependencies (<b>&gt;&gt;</b>) define order. <b>Branching</b> (BranchPythonOperator) lets one path of the DAG run instead of another based on logic — <b>ShortCircuitOperator</b> is the simpler cousin: it just skips everything downstream if a condition is false, no picking between paths. <b>TaskGroups</b> are purely a UI/organisation tool (no execution semantics) for collapsing a cluster of tasks visually. <b>Sensors</b> wait for something external (a file, a table, another DAG) before letting the DAG proceed.
+  </div>
+
+  <h3 class="block-title">ARCHITECTURE DIAGRAM — BRANCHING DAG</h3>
+  <div class="diagram-wrap">
+<svg viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+  <defs><marker id="arrow2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7FD8E8"/></marker></defs>
+  <rect x="20" y="95" width="140" height="60" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+  <text x="90" y="130" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">sum_orders</text>
+
+  <rect x="220" y="95" width="150" height="60" rx="2" fill="none" stroke="#F4A340" stroke-width="1.4"/>
+  <text x="295" y="121" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">check_total</text>
+  <text x="295" y="137" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">(Branch)</text>
+
+  <rect x="460" y="30" width="150" height="60" rx="2" fill="none" stroke="#E8747A" stroke-width="1.3"/>
+  <text x="535" y="65" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">raise_alert</text>
+
+  <rect x="460" y="160" width="150" height="60" rx="2" fill="none" stroke="#7FD9A6" stroke-width="1.3"/>
+  <text x="535" y="195" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">merge_and_write</text>
+
+  <rect x="700" y="95" width="170" height="60" rx="2" fill="rgba(127,216,232,0.06)" stroke="#7FD8E8" stroke-width="1.5"/>
+  <text x="785" y="121" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">close_kitchen</text>
+  <text x="785" y="137" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">trigger_rule=none_failed</text>
+
+  <path d="M160,125 L220,125" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow2)"/>
+  <path d="M370,115 L460,70" stroke="#F4A340" stroke-width="1.2" fill="none" marker-end="url(#arrow2)"/>
+  <path d="M370,135 L460,185" stroke="#F4A340" stroke-width="1.2" fill="none" marker-end="url(#arrow2)"/>
+  <path d="M610,65 L700,115" stroke="#E8747A" stroke-width="1.2" fill="none" marker-end="url(#arrow2)" stroke-dasharray="3 3"/>
+  <path d="M610,185 L700,130" stroke="#7FD9A6" stroke-width="1.2" fill="none" marker-end="url(#arrow2)"/>
+  <text x="418" y="230" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">only ONE of these two branches actually runs — the other is SKIPPED, not failed</text>
+</svg>
+  </div>
+  <div class="diagram-cap">This is the exact pattern from your order-validation DAG. The dashed arrow into close_kitchen is the one people forget: without `trigger_rule="none_failed"`, close_kitchen inherits the default `all_success` rule and silently skips forever whenever raise_alert's branch fires.</div>
+
+  <h3 class="block-title">CODE — BRANCHING + TASKGROUP</h3>
+  <pre><span class="k">from</span> airflow.operators.python <span class="k">import</span> BranchPythonOperator
+<span class="k">from</span> airflow.operators.empty <span class="k">import</span> EmptyOperator
+<span class="k">from</span> airflow.utils.task_group <span class="k">import</span> TaskGroup
+
+<span class="k">def</span> check_total(**context):
+    total = context[<span class="s">"ti"</span>].xcom_pull(task_ids=<span class="s">"sum_orders"</span>)
+    <span class="k">if</span> total <span class="k">is</span> <span class="k">None</span>:
+        <span class="k">raise</span> ValueError(<span class="s">"sum_orders pushed nothing to XCom"</span>)
+    <span class="k">return</span> <span class="s">"raise_alert"</span> <span class="k">if</span> total &lt; 100 <span class="k">else</span> <span class="s">"merge_and_write"</span>
+
+<span class="c"># TaskGroup is UI-only sugar — it does not change execution order,</span>
+<span class="c"># it just collapses these tasks into one node in the Graph view</span>
+<span class="k">with</span> TaskGroup(group_id=<span class="s">"validation"</span>) <span class="k">as</span> validation:
+    check = BranchPythonOperator(task_id=<span class="s">"check_total"</span>, python_callable=check_total)
+    raise_alert = EmptyOperator(task_id=<span class="s">"raise_alert"</span>)
+    merge_and_write = EmptyOperator(task_id=<span class="s">"merge_and_write"</span>)
+    check &gt;&gt; [raise_alert, merge_and_write]</pre>
+
+  <h3 class="block-title">INTERVIEW Q&A</h3>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>BranchPythonOperator vs ShortCircuitOperator — what's the actual difference?</summary>
+    <div class="ans"><p>BranchPythonOperator picks <i>which one</i> of several downstream paths to run — it returns a task_id (or list of task_ids). ShortCircuitOperator is binary: it returns True/False, and if False, everything downstream of it is skipped entirely — there's no "other path," just "continue or stop."</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>What's the difference between a Sensor and a normal task waiting via `time.sleep`?</summary>
+    <div class="ans"><p>A Sensor is built for polling — it retries checking a condition (file exists, row count matches, another DAG finished) on an interval, and importantly it can run in "reschedule" mode, which frees up the worker slot between checks instead of blocking it, unlike a task that just sleeps inside its own process.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>Are SubDAGs still recommended?</summary>
+    <div class="ans"><p>No — SubDAGs are deprecated in modern Airflow because they had serialization and deadlock issues. TaskGroups replaced them for visual grouping, since TaskGroups don't spin up a separate DAG run.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag long">LONG</span>Explain "poke" mode vs "reschedule" mode for sensors, and when you'd pick each.</summary>
+    <div class="ans">
+      <p><b>Poke mode</b> holds onto the worker slot for the entire waiting period — it checks the condition, and if not met, just sleeps and checks again, all inside the same process. This is fine for short waits, but if you have many sensors waiting a long time, you can exhaust your worker pool with tasks that are doing nothing but waiting.</p>
+      <p><b>Reschedule mode</b> releases the worker slot between checks and re-queues itself, so the slot is available for other tasks while this one is "waiting." You'd pick reschedule mode for anything that might wait more than a few minutes — e.g. waiting for a file that could land anywhere from 5 minutes to 3 hours late.</p>
+      <p class="say">Say it like: "Poke blocks a worker the whole time it's waiting; reschedule frees the worker between checks — so for long or unpredictable waits, reschedule mode, or better, a deferred sensor via the Triggerer, is the production-safe choice."</p>
+    </div>
+  </details>
+
+  <details class="qa"><summary><span class="tag long">LONG</span>You inherited a DAG where a downstream "send_notification" task keeps getting skipped forever whenever the pipeline hits an error branch. Diagnose it.</summary>
+    <div class="ans">
+      <p>This is almost always a trigger_rule issue. By default, every task uses `all_success` — meaning it only runs if <i>every</i> direct upstream task succeeded. When you have a BranchPythonOperator, the branch that wasn't chosen is marked <b>skipped</b>, not failed or successful — and a skip propagates downstream by default, so any task depending on both branches (like a final notification step) inherits that skip and never runs.</p>
+      <p>The fix is setting `trigger_rule="none_failed"` (run as long as nothing upstream actually failed — skips are fine) or `trigger_rule="none_failed_min_one_success"` if you want to require at least one real success. This is precisely the `close_kitchen` pattern from Module 2's diagram.</p>
+    </div>
+  </details>
+
+  <h3 class="block-title">PROJECT-BASED SCENARIO</h3>
+  <div class="case">
+    <div class="lbl">SCENARIO</div>
+    <p>Build a DAG: extract data from an API → validate row count and null percentage → if validation fails, alert the data team and stop; if it passes, load into the warehouse and then always run a "pipeline_complete" notification regardless of which path was taken.</p>
+    <p><b>How to structure the answer:</b> extract → BranchPythonOperator(validate) → [alert_team, load_warehouse] → pipeline_complete with `trigger_rule="none_failed"`. Mention explicitly that pipeline_complete needs the non-default trigger rule, because that's the detail that separates someone who's built this before from someone reciting operator names.</p>
+  </div>
+
+  <h3 class="block-title">BUSINESS / CLIENT CASE</h3>
+  <div class="case">
+    <div class="lbl">CLIENT SAYS</div>
+    <p>"Twice last quarter, corrupted vendor data got loaded straight into our warehouse and broke downstream dashboards before anyone noticed."</p>
+    <p><b>How you'd respond:</b> The root cause is almost certainly a missing validation gate — the pipeline probably goes straight from extract to load with no branch in between. Propose inserting a BranchPythonOperator that checks row counts, null thresholds, or schema drift before the load step, routing bad data to a quarantine/alert path instead of the warehouse. Frame it for a non-technical stakeholder as: "we're adding a checkpoint that stops bad data at the door instead of finding it after it's already in the dashboard."</p>
+  </div>
+</section>
+
+<!-- ================= MODULE 3 ================= -->
+<section class="module" id="m3">
+  <div class="mod-head"><span class="mod-num">MODULE 03</span><h2>Scheduling, Triggers & Backfill</h2></div>
+
+  <div class="tldr">
+    <div class="lbl">TL;DR</div>
+    Airflow schedules runs for a completed <b>data_interval</b>, not the moment you'd naively expect — a `@daily` DAG for Jan 1 actually runs at the <i>start</i> of Jan 2, once the Jan 1 interval has fully passed. That timestamp is the <b>logical_date</b> (the old, confusing name was `execution_date`). <b>catchup=True</b> (default) will backfill every missed interval since `start_date` the moment you deploy — a common footgun. <b>Datasets</b> let a DAG trigger based on another DAG producing data, instead of a blind time-based sensor. <b>Retries + retry_delay (+ exponential backoff)</b> handle transient failures without paging a human.
+  </div>
+
+  <h3 class="block-title">DIAGRAM — LOGICAL DATE VS DATA INTERVAL</h3>
+  <div class="diagram-wrap">
+<svg viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+  <defs><marker id="arrow3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7FD8E8"/></marker></defs>
+  <line x1="40" y1="100" x2="860" y2="100" stroke="#8FA6BD" stroke-width="1"/>
+  <path d="M850,95 L860,100 L850,105" fill="none" stroke="#8FA6BD" stroke-width="1"/>
+
+  <line x1="150" y1="80" x2="150" y2="120" stroke="#7FD8E8" stroke-width="1.3"/>
+  <text x="150" y="65" fill="#7FD8E8" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">Jan 1 00:00</text>
+  <line x1="450" y1="80" x2="450" y2="120" stroke="#7FD8E8" stroke-width="1.3"/>
+  <text x="450" y="65" fill="#7FD8E8" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">Jan 2 00:00</text>
+  <line x1="750" y1="80" x2="750" y2="120" stroke="#7FD8E8" stroke-width="1.3"/>
+  <text x="750" y="65" fill="#7FD8E8" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">Jan 3 00:00</text>
+
+  <rect x="150" y="130" width="300" height="26" fill="rgba(127,216,232,0.1)" stroke="#7FD8E8" stroke-width="1"/>
+  <text x="300" y="147" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">data_interval [Jan 1 → Jan 2)</text>
+
+  <circle cx="450" cy="100" r="4" fill="#F4A340"/>
+  <path d="M450,180 L450,125" stroke="#F4A340" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#arrow3)"/>
+  <text x="450" y="195" fill="#F4A340" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">DAG actually RUNS here, at Jan 2 00:00 — but logical_date/execution_date is stamped Jan 1</text>
+</svg>
+  </div>
+  <div class="diagram-cap">This is the single most common source of "why is my date off by one day" confusion in interviews and in production. The interval has to close before Airflow will run the task for it.</div>
+
+  <h3 class="block-title">CODE — RETRIES & DATASET-TRIGGERED DAG</h3>
+  <pre><span class="k">from</span> airflow <span class="k">import</span> DAG, Dataset
+<span class="k">from</span> airflow.operators.python <span class="k">import</span> PythonOperator
+<span class="k">from</span> datetime <span class="k">import</span> datetime, timedelta
+
+orders_dataset = Dataset(<span class="s">"s3://bucket/orders/daily/"</span>)
+
+<span class="c"># producer DAG: writes to the dataset URI when it succeeds</span>
+<span class="k">with</span> DAG(<span class="s">"produce_orders"</span>, start_date=datetime(2026,1,1), schedule=<span class="s">"@daily"</span>, catchup=<span class="k">False</span>) <span class="k">as</span> dag:
+    PythonOperator(
+        task_id=<span class="s">"write_orders"</span>,
+        python_callable=<span class="k">lambda</span>: <span class="k">None</span>,
+        outlets=[orders_dataset],
+        retries=3,
+        retry_delay=timedelta(minutes=5),
+        retry_exponential_backoff=<span class="k">True</span>,
+    )
+
+<span class="c"># consumer DAG: triggers automatically once orders_dataset is updated —</span>
+<span class="c"># no time-based schedule, no ExternalTaskSensor polling loop needed</span>
+<span class="k">with</span> DAG(<span class="s">"consume_orders"</span>, start_date=datetime(2026,1,1), schedule=[orders_dataset], catchup=<span class="k">False</span>) <span class="k">as</span> dag2:
+    PythonOperator(task_id=<span class="s">"process"</span>, python_callable=<span class="k">lambda</span>: <span class="k">None</span>)</pre>
+
+  <h3 class="block-title">INTERVIEW Q&A</h3>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>Why does a `@daily` DAG show "Jan 1" but actually run on Jan 2?</summary>
+    <div class="ans"><p>Because Airflow schedules for a completed interval. The Jan 1 interval only "closes" at midnight Jan 2, and that's when the scheduler actually triggers the run — the label just refers to the interval it's processing, not the moment it executed.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>What's the risk of deploying a new DAG with `catchup=True` and a `start_date` from a year ago?</summary>
+    <div class="ans"><p>Airflow will immediately try to backfill every missed daily (or whatever interval) run since that start_date — potentially hundreds of DagRuns firing at once, overwhelming the executor/workers and, if the task hits an external API or database, potentially rate-limiting or overloading it too.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>Datasets vs ExternalTaskSensor — when would you use each?</summary>
+    <div class="ans"><p>Datasets are push-based and declarative — the producer DAG declares it writes to a Dataset, and consumers auto-trigger on that update, no polling. ExternalTaskSensor is pull-based — the consumer DAG actively polls for another DAG's specific task to reach a certain state. Datasets are the more modern, lower-overhead choice when you control both DAGs; ExternalTaskSensor still has a place for tighter coupling on exact task-level state within a run.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag long">LONG</span>A junior engineer deploys a DAG with `start_date=datetime(2024,1,1)` and forgets to set `catchup=False`. It's now 2026. Walk through what happens and how you'd handle it.</summary>
+    <div class="ans">
+      <p>The moment that DAG is unpaused, the Scheduler sees roughly 730+ missed daily intervals between the start_date and now, and — because `catchup` defaults to True — it queues a DagRun for every single one of them. Depending on the executor's parallelism settings, this can flood the worker pool, spike load on any external system the task hits (API, database), and make the UI genuinely hard to read because it's buried under two years of backfill runs.</p>
+      <p><b>Immediate fix:</b> pause the DAG, then either delete the unwanted DagRuns via the UI/CLI or use `airflow dags backfill` selectively if some historical runs are actually wanted, then set `catchup=False` and un-pause.</p>
+      <p><b>Prevention:</b> this should be caught in code review or a CI lint step — a new DAG's `start_date` should almost always be recent, and `catchup` should be explicit rather than left to default, precisely because the default is the dangerous option.</p>
+    </div>
+  </details>
+
+  <h3 class="block-title">PROJECT-BASED SCENARIO</h3>
+  <div class="case">
+    <div class="lbl">SCENARIO</div>
+    <p>Pipeline B (sales aggregation) must only run after Pipeline A (raw order ingestion) has actually landed fresh data — not just "some time after," because A's landing time varies by 20 minutes to 4 hours daily.</p>
+    <p><b>How to structure the answer:</b> A time-based schedule on B is the wrong tool here because A's completion time isn't fixed. Use Datasets: A declares an `outlets=[orders_dataset]` on its final task, and B's DAG uses `schedule=[orders_dataset]` instead of a cron string — B fires automatically and only when A actually finishes, regardless of what time that happens to be.</p>
+  </div>
+
+  <h3 class="block-title">BUSINESS / CLIENT CASE</h3>
+  <div class="case">
+    <div class="lbl">CLIENT SAYS</div>
+    <p>"Our finance dashboard sometimes shows numbers computed from yesterday's data instead of today's, and we don't understand why — the pipeline is scheduled correctly."</p>
+    <p><b>How you'd respond:</b> This usually traces back to the logical_date vs data_interval gap, or a fixed-time schedule racing against an upstream source that doesn't land on a fixed schedule. Ask when the upstream data actually lands each day — if it varies, a rigid cron schedule will sometimes run before the day's data has arrived. Recommend switching the downstream DAG to a Dataset-triggered schedule so it only ever runs after the upstream data is confirmed present, removing the race condition entirely.</p>
+  </div>
+</section>
+
+<!-- ================= MODULE 4 ================= -->
+<section class="module" id="m4">
+  <div class="mod-head"><span class="mod-num">MODULE 04</span><h2>Web UI, CLI & Monitoring</h2></div>
+
+  <div class="tldr">
+    <div class="lbl">TL;DR</div>
+    <b>Grid view</b> = history across runs (your main daily-check screen). <b>Graph view</b> = dependency structure of one run. <b>Gantt</b> = where time is actually being spent (spot bottlenecks). <b>Calendar</b> = success/failure at a glance over weeks/months. "<b>Clear</b>" re-queues a task to run again; "<b>Mark Success/Failed</b>" just changes the recorded state without re-running anything — know the difference before you click either in production. The CLI (`airflow tasks test`, `airflow dags list-import-errors`, etc.) is how you debug without waiting on the scheduler. Logs should go to remote storage (S3/GCS/CloudWatch) in production, not local disk, or you lose them when a worker/pod is recycled.
+  </div>
+
+  <h3 class="block-title">DIAGRAM — DEBUGGING A STUCK TASK</h3>
+  <div class="diagram-wrap">
+<svg viewBox="0 0 900 160" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+  <defs><marker id="arrow4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7FD8E8"/></marker></defs>
+  <g font-family="IBM Plex Mono" font-size="11" fill="#E8EEF5" text-anchor="middle">
+    <rect x="10" y="55" width="150" height="55" rx="2" fill="none" stroke="#F4A340" stroke-width="1.3"/>
+    <text x="85" y="87">Task stuck</text>
+    <rect x="200" y="55" width="150" height="55" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+    <text x="275" y="80">Check task logs</text>
+    <text x="275" y="95" fill="#8FA6BD" font-size="9.5">(UI or remote store)</text>
+    <rect x="390" y="55" width="150" height="55" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+    <text x="465" y="80">Check Executor /</text>
+    <text x="465" y="95">queue depth</text>
+    <rect x="580" y="55" width="150" height="55" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+    <text x="655" y="80">Check Worker</text>
+    <text x="655" y="95" fill="#8FA6BD" font-size="9.5">resource / health</text>
+    <rect x="770" y="55" width="120" height="55" rx="2" fill="rgba(127,216,232,0.08)" stroke="#7FD8E8" stroke-width="1.5"/>
+    <text x="830" y="80">Clear task</text>
+    <text x="830" y="95" fill="#8FA6BD" font-size="9.5">to retry</text>
+  </g>
+  <path d="M160,82 L200,82" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow4)"/>
+  <path d="M350,82 L390,82" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow4)"/>
+  <path d="M540,82 L580,82" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow4)"/>
+  <path d="M730,82 L770,82" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow4)"/>
+</svg>
+  </div>
+  <div class="diagram-cap">This is the sequence to say out loud in an incident-response interview question — logs first, then queue/executor, then worker health, then decide whether to clear (retry) or escalate.</div>
+
+  <h3 class="block-title">CODE — CLI DEBUGGING</h3>
+  <pre><span class="c"># run ONE task in isolation, ignoring dependencies — the fastest way to test task logic</span>
+airflow tasks test architecture_demo hello 2026-01-01
+
+<span class="c"># catch DAG import errors before they silently vanish from the UI</span>
+airflow dags list-import-errors
+
+<span class="c"># list every DAG the scheduler currently sees</span>
+airflow dags list
+
+<span class="c"># manually trigger a DAG run right now, outside its schedule</span>
+airflow dags trigger architecture_demo</pre>
+
+  <h3 class="block-title">INTERVIEW Q&A</h3>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>"Clear" vs "Mark Success" — what's the practical difference?</summary>
+    <div class="ans"><p>Clear removes the task instance's state and re-queues it to actually run again. Mark Success just flips the recorded state to success without executing anything — useful when you've fixed the underlying data manually and don't want the task to redo work, but dangerous if used to "make the red go away" without actually understanding why it failed.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>Grid view vs Gantt view — when do you reach for each?</summary>
+    <div class="ans"><p>Grid view for "has this DAG been healthy over the last N runs" — your daily glance. Gantt view for "which specific task is eating all the time in this one run" — your bottleneck-finding tool when a DAG that used to finish in 20 minutes now takes 2 hours.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>Why should production logs go to S3/GCS/CloudWatch instead of local disk?</summary>
+    <div class="ans"><p>Workers (especially with KubernetesExecutor, where each task gets a fresh pod) are ephemeral — once the pod is torn down, anything written only to its local disk is gone. Remote logging keeps logs available after the compute that produced them no longer exists, which is also usually a compliance/audit requirement.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag long">LONG</span>A task has been running for 3 hours in production when it usually takes 15 minutes. Walk through your debugging steps.</summary>
+    <div class="ans">
+      <p><b>1. Logs first.</b> Open the task's logs in the UI (or the remote log store if the UI is slow). Is it actually doing work — progressing through log lines — or stuck at one line, which suggests a hang (e.g. waiting on a lock, an API call with no timeout)?</p>
+      <p><b>2. Check queue depth / executor.</b> If logs show nothing running yet, it may not have even started — check whether it's stuck in "queued" because the executor's worker pool is saturated by other tasks.</p>
+      <p><b>3. Check worker health.</b> Is the worker (or pod, if KubernetesExecutor) actually alive — CPU/memory not maxed out, no OOM kill in its history?</p>
+      <p><b>4. Decide: wait, clear, or kill.</b> If it's a known slow-but-safe query, let it finish. If it's genuinely hung, clear the task (which kills and re-queues it) rather than letting it block downstream tasks and SLA alerts indefinitely.</p>
+      <p class="say">Say it like: "I'd check logs first to see if it's actually stuck or just slow, then check whether the bottleneck is upstream — queue or worker capacity — before deciding whether to let it run, clear it, or escalate."</p>
+    </div>
+  </details>
+
+  <h3 class="block-title">PROJECT-BASED SCENARIO</h3>
+  <div class="case">
+    <div class="lbl">SCENARIO</div>
+    <p>Set up failure alerting so the on-call engineer is pinged in Slack within 2 minutes of any production DAG failing, without them having to keep the Airflow UI open all day.</p>
+    <p><b>How to structure the answer:</b> Add an `on_failure_callback` at the DAG or `default_args` level that posts to a Slack webhook (or use the `SlackWebhookOperator`/`SlackNotifier`). Emphasize this is layered on top of `retries` — you don't want to page someone on the first transient failure, only after retries are exhausted, so the alert should fire from the final failed state, not every attempt.</p>
+  </div>
+
+  <h3 class="block-title">BUSINESS / CLIENT CASE</h3>
+  <div class="case">
+    <div class="lbl">CLIENT SAYS</div>
+    <p>"We need to prove to auditors that our data pipelines ran successfully and on time every day for the last quarter."</p>
+    <p><b>How you'd respond:</b> Airflow's metadata DB already retains this history — point to the Calendar view for a quick visual pass/fail record, and the Grid view or a CLI/API query against DagRuns for an exportable, timestamped log. Recommend setting up remote log retention with a policy matching the audit window, and note that this is exactly the kind of accountability cron scripts on a bare server can't provide.</p>
+  </div>
+</section>
+
+<!-- ================= MODULE 5 ================= -->
+<section class="module" id="m5">
+  <div class="mod-head"><span class="mod-num">MODULE 05</span><h2>XComs, Variables, Connections & Templating</h2></div>
+
+  <div class="tldr">
+    <div class="lbl">TL;DR</div>
+    <b>XCom</b> passes small values between tasks through the metadata DB — never pass a dataframe or a large file through it, only IDs, counts, small strings/dicts. <b>Variables</b> are global key/value config (like feature flags or thresholds) accessible from any DAG. <b>Connections</b> store credentials/endpoints for external systems, ideally never hardcoded in DAG code. <b>Jinja templating</b> (`{{ ds }}`, `{{ ti }}`, custom macros) lets operator parameters be computed at render time instead of at DAG-parse time. In production, Variables and Connections should be backed by a real secrets manager (AWS Secrets Manager, GCP Secret Manager, Vault), not the Airflow UI's built-in storage.
+  </div>
+
+  <h3 class="block-title">DIAGRAM — XCOM FLOW</h3>
+  <div class="diagram-wrap">
+<svg viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+  <defs><marker id="arrow5" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7FD8E8"/></marker></defs>
+  <rect x="30" y="70" width="170" height="60" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+  <text x="115" y="95" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">Task A</text>
+  <text x="115" y="111" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">ti.xcom_push(key, val)</text>
+
+  <rect x="365" y="15" width="170" height="65" rx="2" fill="rgba(127,216,232,0.06)" stroke="#7FD8E8" stroke-width="1.6"/>
+  <text x="450" y="42" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">Metadata DB</text>
+  <text x="450" y="58" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">xcom table</text>
+  <text x="450" y="70" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">(small values only)</text>
+
+  <rect x="700" y="70" width="170" height="60" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+  <text x="785" y="95" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="12" text-anchor="middle">Task B</text>
+  <text x="785" y="111" fill="#8FA6BD" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">ti.xcom_pull(task_ids='A')</text>
+
+  <path d="M200,90 L365,60" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow5)"/>
+  <path d="M535,60 L700,95" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow5)"/>
+
+  <rect x="330" y="150" width="240" height="35" rx="2" fill="none" stroke="#E8747A" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="450" y="172" fill="#E8747A" font-family="IBM Plex Mono" font-size="10.5" text-anchor="middle">NOT for: dataframes, files, large JSON blobs</text>
+</svg>
+  </div>
+  <div class="diagram-cap">Tasks never talk to each other directly — everything, including XCom, is mediated through the metadata DB. That's the same architectural principle from Module 1, applied to inter-task data passing.</div>
+
+  <h3 class="block-title">CODE — XCOM, VARIABLE, CONNECTION, TEMPLATING</h3>
+  <pre><span class="k">from</span> airflow.models <span class="k">import</span> Variable
+<span class="k">from</span> airflow.hooks.base <span class="k">import</span> BaseHook
+<span class="k">from</span> airflow.operators.python <span class="k">import</span> PythonOperator
+
+<span class="k">def</span> push_count(**context):
+    context[<span class="s">"ti"</span>].xcom_push(key=<span class="s">"row_count"</span>, value=4213)
+
+<span class="k">def</span> use_config(**context):
+    <span class="c"># Variable: global config, e.g. a threshold you tune without redeploying code</span>
+    threshold = Variable.get(<span class="s">"min_row_threshold"</span>, default_var=100)
+
+    <span class="c"># Connection: credentials never hardcoded in the DAG file</span>
+    conn = BaseHook.get_connection(<span class="s">"prod_postgres"</span>)
+
+    row_count = context[<span class="s">"ti"</span>].xcom_pull(task_ids=<span class="s">"push_count"</span>, key=<span class="s">"row_count"</span>)
+    <span class="k">if</span> row_count &lt; int(threshold):
+        <span class="k">raise</span> ValueError(<span class="s">"row count below threshold"</span>)
+
+push = PythonOperator(task_id=<span class="s">"push_count"</span>, python_callable=push_count)
+use  = PythonOperator(task_id=<span class="s">"use_config"</span>,  python_callable=use_config)
+push &gt;&gt; use
+
+<span class="c"># Jinja templating example — {{ ds }} is resolved to the run's date string at RENDER time,</span>
+<span class="c"># not when the DAG file is parsed</span>
+<span class="c"># sql="SELECT * FROM orders WHERE order_date = '{{ ds }}'"</span></pre>
+
+  <h3 class="block-title">INTERVIEW Q&A</h3>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>Why shouldn't you push a pandas DataFrame through XCom?</summary>
+    <div class="ans"><p>XCom values are serialized and stored as rows in the metadata database. A DataFrame can be large, and stuffing it into the DB bloats the database, slows down every query against that table, and isn't what XCom was designed for — it's meant for small signalling values like a count, an ID, or a short status string. For passing actual datasets between tasks, write to shared storage (S3, a table, a file) and pass the path/reference through XCom instead.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>Variable vs Connection — how do you decide which one to use?</summary>
+    <div class="ans"><p>Variable for general config values (a threshold, a feature flag, an environment name). Connection specifically for how-to-reach-an-external-system details — host, login, password, connection type — because Connections get special handling for credential masking and secrets backend integration that plain Variables don't.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>What does `{{ ds }}` actually resolve to?</summary>
+    <div class="ans"><p>The DAG run's logical date formatted as YYYY-MM-DD — one of Airflow's built-in Jinja macros, resolved when the operator's templated fields are rendered, not when the Python file is parsed.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag long">LONG</span>How would you securely manage a database password that's currently hardcoded in 20 different DAG files?</summary>
+    <div class="ans">
+      <p>First, stop the bleeding: move the credential into an Airflow Connection instead of a string literal in code, so it's no longer sitting in plaintext in version control — anyone with repo access currently has the production password, which is the real risk here.</p>
+      <p>Second, for a genuinely production-grade setup, back that Connection with an external secrets manager (AWS Secrets Manager, GCP Secret Manager, or HashiCorp Vault) rather than Airflow's own metadata DB — Airflow supports pluggable secrets backends specifically for this, so the actual secret value never lives in Airflow's database at all, only a reference to where to fetch it.</p>
+      <p>Third, update all 20 DAGs to reference the Connection by `conn_id` via a Hook, and treat the old hardcoded password as compromised — rotate it, since it's been exposed in git history even after you remove it from the current file.</p>
+      <p class="say">Say it like: "Move it out of code into a Connection first to stop it being in version control, then back that Connection with a real secrets manager so Airflow itself never stores the raw secret, and rotate the old password since it's already been exposed."</p>
+    </div>
+  </details>
+
+  <h3 class="block-title">PROJECT-BASED SCENARIO</h3>
+  <div class="case">
+    <div class="lbl">SCENARIO</div>
+    <p>The same DAG needs to run against a dev database in the dev environment and a prod database in prod, without maintaining two separate copies of the DAG file.</p>
+    <p><b>How to structure the answer:</b> Use a Variable (e.g. `env_name`) or Airflow's built-in environment detection to pick which Connection ID to use at runtime — `conn_id = f"{Variable.get('env_name')}_postgres"`. This keeps one DAG file that's environment-agnostic, with the actual environment-specific details (credentials, hosts) living in Connections managed outside the code.</p>
+  </div>
+
+  <h3 class="block-title">BUSINESS / CLIENT CASE</h3>
+  <div class="case">
+    <div class="lbl">CLIENT SAYS</div>
+    <p>"Our security audit flagged that a production database password is sitting in plaintext inside a Python file in our Git repository."</p>
+    <p><b>How you'd respond:</b> This is exactly the Connections + secrets backend fix above — walk them through moving the credential out of code into a Connection backed by a secrets manager, and stress that the old password must be rotated, not just removed from the current file, because Git history still has it. Frame it as a one-time migration plus a standing rule going forward: no credential is ever a string literal in a DAG file.</p>
+  </div>
+</section>
+
+<!-- ================= MODULE 6 ================= -->
+<section class="module" id="m6">
+  <div class="mod-head"><span class="mod-num">MODULE 06</span><h2>CI/CD, Plugins & Dagster</h2></div>
+
+  <div class="tldr">
+    <div class="lbl">TL;DR</div>
+    Production Airflow deploys DAGs via <b>git-sync</b> (a sidecar/process continuously pulling the DAGs repo) rather than manual file copying. <b>CI/CD</b> (GitHub Actions/Jenkins) should lint and import-check DAGs before merge, so a broken DAG never even reaches the scheduler. Auth in production goes through <b>OAuth/OIDC/LDAP</b>, not the default local user store. <b>Dagster</b> is a newer, competing orchestrator built around <b>software-defined assets</b> (the data itself, and its lineage, is the first-class concept) rather than Airflow's <b>task-centric</b> model (the code that runs is the first-class concept) — Dagster tends to win on built-in observability/testing for asset-heavy platforms; Airflow wins on ecosystem maturity, provider integrations, and hiring pool size.
+  </div>
+
+  <h3 class="block-title">DIAGRAM — CI/CD DEPLOYMENT FLOW</h3>
+  <div class="diagram-wrap">
+<svg viewBox="0 0 900 160" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+  <defs><marker id="arrow6" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7FD8E8"/></marker></defs>
+  <g font-family="IBM Plex Mono" font-size="11" fill="#E8EEF5" text-anchor="middle">
+    <rect x="10" y="50" width="130" height="60" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+    <text x="75" y="83">Pull Request</text>
+    <rect x="180" y="50" width="150" height="60" rx="2" fill="none" stroke="#F4A340" stroke-width="1.3"/>
+    <text x="255" y="77">CI: lint +</text>
+    <text x="255" y="92">import-check DAGs</text>
+    <rect x="370" y="50" width="130" height="60" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+    <text x="435" y="83">Merge to main</text>
+    <rect x="540" y="50" width="150" height="60" rx="2" fill="none" stroke="#7FD8E8" stroke-width="1.3"/>
+    <text x="615" y="77">git-sync pulls</text>
+    <text x="615" y="92">DAGs folder</text>
+    <rect x="730" y="50" width="160" height="60" rx="2" fill="rgba(127,216,232,0.08)" stroke="#7FD8E8" stroke-width="1.5"/>
+    <text x="810" y="77">Scheduler picks</text>
+    <text x="810" y="92">up new DAG</text>
+  </g>
+  <path d="M140,80 L180,80" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow6)"/>
+  <path d="M330,80 L370,80" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow6)"/>
+  <path d="M500,80 L540,80" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow6)"/>
+  <path d="M690,80 L730,80" stroke="#7FD8E8" stroke-width="1.2" fill="none" marker-end="url(#arrow6)"/>
+</svg>
+  </div>
+  <div class="diagram-cap">The whole point of the CI step is that a DAG with a Python import error never reaches production — it fails the PR instead of silently vanishing from the Airflow UI (which is what happens when the scheduler can't parse a file).</div>
+
+  <h3 class="block-title">CODE — CI CHECK FOR DAG IMPORT ERRORS</h3>
+  <pre><span class="c"># .github/workflows/dag-check.yml (conceptual step)</span>
+<span class="c"># fails the PR if any DAG file can't be imported/parsed cleanly</span>
+- name: Validate DAGs
+  run: |
+    python -m pip install apache-airflow
+    airflow db init
+    airflow dags list-import-errors --output json &gt; errors.json
+    <span class="k">if</span> [ "$(cat errors.json)" != "{}" ]; <span class="k">then</span>
+      echo "DAG import errors found:"; cat errors.json; exit 1
+    <span class="k">fi</span></pre>
+
+  <h3 class="block-title">INTERVIEW Q&A</h3>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>What is git-sync and why use it over manually copying DAG files?</summary>
+    <div class="ans"><p>git-sync is a sidecar process that continuously pulls the latest commit from a DAGs repository into the scheduler/webserver's DAGs folder. It removes the human-in-the-loop deployment step (someone SCPing files), makes deployment auditable through Git history, and means every environment is running exactly what's in a known commit.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>In one sentence, what's the core philosophical difference between Airflow and Dagster?</summary>
+    <div class="ans"><p>Airflow is task-centric — "run this code, in this order"; Dagster is asset-centric — "produce this data asset, and track its lineage, freshness, and quality," with the pipeline code as a means to that end rather than the primary unit of thought.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag short">SHORT</span>What's the quickest way to catch a broken DAG before it reaches production?</summary>
+    <div class="ans"><p>A CI step that runs `airflow dags list-import-errors` (or simply tries to import each DAG file) against the PR branch, failing the build if any DAG can't be parsed — catching it in code review instead of discovering it later as a DAG that's mysteriously absent from the UI.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="tag long">LONG</span>Your company is evaluating Dagster vs Airflow for a brand-new data platform. How do you advise them?</summary>
+    <div class="ans">
+      <p>Ask what they're optimising for first — this isn't a "which is better" question, it's a fit question.</p>
+      <p><b>Lean Airflow if:</b> they need the widest possible library of pre-built integrations (providers for practically every cloud/SaaS tool), a large existing hiring pool with Airflow experience, or they're integrating into an org that already runs Airflow elsewhere.</p>
+      <p><b>Lean Dagster if:</b> the team thinks primarily in terms of data assets and lineage (e.g. a data platform team building a catalog of curated tables/ML features), wants strong built-in testing and local development ergonomics, or is starting fresh with no legacy Airflow DAGs to migrate.</p>
+      <p>In practice, also weigh switching cost — if the org already has hundreds of Airflow DAGs in production, the migration cost to Dagster usually has to be justified by a very specific pain point Airflow isn't solving, not just "Dagster is newer."</p>
+      <p class="say">Say it like: "It depends on whether they think in tasks or assets, and how much existing Airflow investment they'd be walking away from — I wouldn't recommend a rewrite just because Dagster is newer."</p>
+    </div>
+  </details>
+
+  <h3 class="block-title">PROJECT-BASED SCENARIO</h3>
+  <div class="case">
+    <div class="lbl">SCENARIO</div>
+    <p>Set up a CI/CD pipeline so that a DAG change made by any engineer is automatically validated and deployed without anyone manually touching the production server.</p>
+    <p><b>How to structure the answer:</b> PR opened → CI runs lint + `airflow dags list-import-errors` against the changed files → PR merged to main only if that passes → git-sync (already running as a sidecar against the DAGs repo) picks up the new commit within its poll interval → Scheduler re-parses and the new/updated DAG appears in the UI. No manual deployment step anywhere in that chain.</p>
+  </div>
+
+  <h3 class="block-title">BUSINESS / CLIENT CASE</h3>
+  <div class="case">
+    <div class="lbl">CLIENT SAYS</div>
+    <p>"Only one engineer knows how to deploy DAG changes — he manually copies files onto the server — and when he's on leave, nothing can be updated or fixed."</p>
+    <p><b>How you'd respond:</b> This is a classic bus-factor problem with a well-known fix: move DAGs into a Git repository, set up git-sync so the Airflow environment pulls from that repo automatically, and add a lightweight CI check so any engineer's PR is validated before it merges. Now any team member can ship a fix through a normal PR process, deployment is auditable, and the org isn't blocked on one person's availability.</p>
+  </div>
+</section>
+
+<!-- ================= CHEAT SHEET ================= -->
+<section class="module" id="cheat">
+  <div class="mod-head"><span class="mod-num">QUICK REFERENCE</span><h2>Master Cheat Sheet</h2></div>
+  <p style="color:var(--ink-muted); max-width:680px;">The night-before-the-interview version — comparison tables, CLI commands, glossary, and a 60-second spoken summary for each module. If you understand everything above, this page alone should be enough to jog your memory.</p>
+
+  <h3 class="block-title">COMPARISON TABLES</h3>
+  <table>
+    <tr><th>Airflow</th><th>cron</th></tr>
+    <tr><td>Dependency-aware — tasks can wait on each other</td><td>Time-only — no concept of "after task X"</td></tr>
+    <tr><td>Retries, backoff, alerting built in</td><td>None — you script it yourself, or nothing happens</td></tr>
+    <tr><td>UI + audit history of every run</td><td>Only whatever you log yourself</td></tr>
+    <tr><td>Can pass small data between steps (XCom)</td><td>No native mechanism</td></tr>
+  </table>
+
+  <table>
+    <tr><th>Executor</th><th>Scaling model</th><th>Best for</th></tr>
+    <tr><td>LocalExecutor</td><td>Parallel processes on one machine</td><td>Small teams, low task volume</td></tr>
+    <tr><td>CeleryExecutor</td><td>Fixed pool of always-on workers via a queue</td><td>Predictable, steady task load</td></tr>
+    <tr><td>KubernetesExecutor</td><td>One pod per task, scales to zero</td><td>Bursty load, strong per-task isolation</td></tr>
+  </table>
+
+  <table>
+    <tr><th>Sensor mode</th><th>Worker slot while waiting</th><th>Use when</th></tr>
+    <tr><td>Poke</td><td>Held the whole time</td><td>Short, predictable wait</td></tr>
+    <tr><td>Reschedule</td><td>Released between checks</td><td>Long or unpredictable wait</td></tr>
+    <tr><td>Deferrable (Triggerer)</td><td>Never held by a worker at all</td><td>Many concurrent long waits, production scale</td></tr>
+  </table>
+
+  <table>
+    <tr><th>Airflow</th><th>Dagster</th></tr>
+    <tr><td>Task-centric: "run this code, in order"</td><td>Asset-centric: "produce and track this data"</td></tr>
+    <tr><td>Huge provider/integration ecosystem</td><td>Strong built-in testing & local dev experience</td></tr>
+    <tr><td>Larger existing hiring pool</td><td>Newer, growing adoption</td></tr>
+  </table>
+
+  <h3 class="block-title">CLI QUICK REFERENCE</h3>
+  <pre><span class="c"># test a single task without touching dependencies or the scheduler</span>
+airflow tasks test &lt;dag_id&gt; &lt;task_id&gt; &lt;date&gt;
+
+<span class="c"># surface DAGs that are silently broken (never trust an empty UI list)</span>
+airflow dags list-import-errors
+
+<span class="c"># list / trigger / pause a DAG from the CLI</span>
+airflow dags list
+airflow dags trigger &lt;dag_id&gt;
+airflow dags pause &lt;dag_id&gt;
+
+<span class="c"># backfill a specific date range explicitly, instead of relying on catchup</span>
+airflow dags backfill -s 2026-01-01 -e 2026-01-07 &lt;dag_id&gt;</pre>
+
+  <h3 class="block-title">GLOSSARY</h3>
+  <dl class="glossary">
+    <dt>DAG</dt><dd>Directed Acyclic Graph — the workflow definition; a set of tasks and their dependencies with no cycles.</dd>
+    <dt>DagRun</dt><dd>One execution instance of a DAG for a specific logical_date / data_interval.</dd>
+    <dt>TaskInstance</dt><dd>One task, within one specific DagRun — the actual unit of work that gets a state (queued/running/success/failed/skipped).</dd>
+    <dt>Operator</dt><dd>A reusable template defining what kind of work a task does (BashOperator, PythonOperator, PostgresOperator...).</dd>
+    <dt>Sensor</dt><dd>A special operator that waits for a condition before letting downstream tasks proceed.</dd>
+    <dt>Hook</dt><dd>A reusable interface for talking to an external system (e.g. PostgresHook), usually built on top of a Connection.</dd>
+    <dt>XCom</dt><dd>"Cross-communication" — small values passed between tasks via the metadata DB.</dd>
+    <dt>Executor</dt><dd>Decides where/how tasks physically run — Local, Celery, Kubernetes.</dd>
+    <dt>Scheduler</dt><dd>Parses DAGs and decides what should run next, writing that decision to the metadata DB.</dd>
+    <dt>Triggerer</dt><dd>Runs deferred/async sensors without occupying a worker slot.</dd>
+    <dt>Dataset</dt><dd>A declared data-producing/consuming relationship that lets DAGs trigger on data updates rather than a fixed schedule.</dd>
+    <dt>logical_date</dt><dd>The timestamp identifying which interval a DagRun is processing — not the moment it actually executed.</dd>
+  </dl>
+
+  <h3 class="block-title">60-SECOND SPOKEN SUMMARY PER MODULE</h3>
+  <div class="grid2">
+    <div class="case"><div class="lbl">M1 · ARCHITECTURE</div><p>"Airflow orchestrates, it doesn't process. The Scheduler decides what runs and writes that to the Metadata DB, the Executor decides where it runs and hands it to a Worker, the Worker does the actual work and reports back to the DB, and the Webserver just reads that same DB to show the UI. Nothing talks to anything else directly — it all goes through the database."</p></div>
+    <div class="case"><div class="lbl">M2 · DAGs & OPERATORS</div><p>"A DAG is the graph, tasks are the nodes, operators are the templates for what a task does. Branching picks one path over another and skips the rest — and anything downstream of a branch needs `trigger_rule=none_failed` or it'll be skipped forever, because skip propagates by default."</p></div>
+    <div class="case"><div class="lbl">M3 · SCHEDULING</div><p>"Airflow schedules for a completed interval, so a daily run labeled Jan 1 actually fires at the start of Jan 2 — that's the logical_date gotcha. catchup=True backfills every missed run since start_date the moment you deploy, which is why I always set it explicitly. Datasets let a DAG trigger off data landing instead of a blind time-based guess."</p></div>
+    <div class="case"><div class="lbl">M4 · UI, CLI & MONITORING</div><p>"Grid for history, Graph for one run's structure, Gantt for finding bottlenecks. Clear re-runs a task, Mark Success just changes the recorded state without running anything — I'd never use Mark Success to make a failure disappear without knowing why it failed first."</p></div>
+    <div class="case"><div class="lbl">M5 · XCOM, VARS & TEMPLATING</div><p>"XCom passes small values through the metadata DB — never a dataframe, that bloats the database. Variables are global config, Connections are credentials, and in production both should be backed by a real secrets manager, not hardcoded in the DAG file."</p></div>
+    <div class="case"><div class="lbl">M6 · CI/CD & DAGSTER</div><p>"DAGs deploy via git-sync pulling from a repo, with a CI step that catches import errors before merge — so a broken DAG never silently disappears from the UI in production. Dagster's the asset-centric alternative to Airflow's task-centric model; which one's right depends on how the team thinks about their pipelines, not which is 'newer'."</p></div>
+  </div>
+
+</section>
+
+</main>
+
+<footer>Built for IntelliBI students — understand it, don't memorise it. Come back to this after 3 months and it should still make sense.</footer>
+
+<script>
+  const buttons = document.querySelectorAll('nav.tabs button');
+  const sections = document.querySelectorAll('section.module');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      sections.forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.target).classList.add('active');
+      window.scrollTo({top: 0, behavior:'instant'});
+    });
+  });
+</script>
+
+</body>
+</html>
